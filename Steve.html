@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8"/>
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute  vec4 vPosition;
+attribute  vec3 vNormal;
+attribute  vec2 vTexCoord;
+
+uniform vec4 lightPosition;
+
+uniform float modelTx;
+uniform float modelTy;
+uniform float modelTz;
+
+uniform float tx;
+uniform float ty;
+uniform float tz;
+
+uniform float sx;
+uniform float sy;
+uniform float sz;
+
+uniform vec3 omega;
+
+uniform mat4 modelView;
+uniform mat4 projection;
+
+uniform float projectionFlag;
+
+varying vec3 N, L, E;
+
+varying vec2 fTexCoord;
+
+mat4 myTranslation(in float thisTx,in float thisTy,in float thisTz) {
+
+  return mat4(1.0,0.0,0.0,0.0,
+              0.0,1.0,0.0,0.0,
+              0.0,0.0,1.0,0.0,
+              thisTx,thisTy,thisTz,1.0);
+
+}
+
+mat4 myScale(in float sx,in float sy,in float sz) {
+
+  return mat4(sx,0.0,0.0,0.0,
+              0.0,sy,0.0,0.0,
+              0.0,0.0,sz,0.0,
+              0.0,0.0,0.0,1.0);
+
+}
+
+mat4 myRotation(in vec3 omega) {
+
+  vec3 angles = radians( omega );
+  vec3 c = cos( angles );
+  vec3 s = sin( angles );
+
+  return mat4( 1.0,  0.0,  0.0, 0.0,
+      0.0,  c.x,  s.x, 0.0,
+      0.0, -s.x,  c.x, 0.0,
+      0.0,  0.0,  0.0, 1.0 )*
+
+  mat4( c.y, 0.0, -s.y, 0.0,
+      0.0, 1.0,  0.0, 0.0,
+      s.y, 0.0,  c.y, 0.0,
+      0.0, 0.0,  0.0, 1.0 )*
+
+  mat4( c.z, s.z, 0.0, 0.0,
+      -s.z,  c.z, 0.0, 0.0,
+      0.0,  0.0, 1.0, 0.0,
+      0.0,  0.0, 0.0, 1.0 );
+}
+
+void main() {
+
+  mat4 newModelView;
+
+  if(projectionFlag==0.0) {
+    newModelView=myTranslation(tx,ty,tz)*myRotation(vec3(0.0,omega[1],0.0))*myRotation(vec3(omega[0],0.0,0.0))*myTranslation(modelTx,modelTy,modelTz)*myScale(sx,sy,sz);
+  }
+  else {
+
+    newModelView=myTranslation(tx,ty,tz)*myTranslation(0.0,0.0,-20.0)*myRotation(vec3(0.0,omega[1],0.0))*myRotation(vec3(omega[0],0.0,0.0))*myTranslation(modelTx,modelTy,modelTz)*myScale(sx,sy,sz);
+  }
+
+
+  vec3 pos = (newModelView * vPosition).xyz;
+  vec3 light = lightPosition.xyz;
+
+  L = normalize(light-pos);
+  E = normalize(-pos);
+  vec4 NN = vec4(vNormal,0);
+  N = normalize( (newModelView*NN).xyz);
+
+  fTexCoord = vTexCoord;
+
+  gl_Position =   projection*newModelView*vPosition;
+
+}
+
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+uniform vec3 vColor;
+uniform float transparency;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+
+uniform float shininess;
+
+uniform int lightFlag;
+
+uniform int textureFlag;
+
+varying vec3 N, L, E;
+
+varying vec2 fTexCoord;
+
+uniform sampler2D texture;
+
+void main() {
+
+
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    vec3 H = normalize( L + E );
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+
+    if( dot(L, N) < 0.0 ) {
+	  specular = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    vec4 fColor;
+
+    if(textureFlag==1) {
+
+      if(lightFlag==0) {
+        fColor=vec4(vColor,transparency)*texture2D(texture,fTexCoord );
+      }
+      else {
+        fColor = (ambient + diffuse +specular)*vec4(vColor,transparency)*texture2D(texture,fTexCoord);
+      }
+
+    }
+
+    else {
+
+      if(lightFlag==0) {
+        fColor=vec4(vColor,transparency);
+      }
+      else {
+        fColor = (ambient + diffuse +specular)*vec4(vColor,transparency);
+      }
+
+    }
+
+    gl_FragColor=fColor;
+    gl_FragColor.a=transparency;
+
+}
+
+</script>
+
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="initShaders.js"></script>
+<script type="text/javascript" src="MV.js"></script>
+<script type="text/javascript" src="Steve.js"></script>
+
+
+<p> </p>
+
+<select id="colorMenu" size="3">
+  <option value="0">Outfit 1</option>
+  <option value="1">Outfit 2</option>
+  <option value="2">Outfit 3</option>
+</select>
+
+<p> </p>
+
+<button id = "Button3">Make steve fat</button>
+
+<p> </p>
+
+<div>Rotate body<input id="yRotationSlider" type="range" min="-180" max="180" step="10" value="-20"></div>
+
+<p> </p>
+
+<div>Rotate lower arms  <input id="lowerArmsRotationSlider" type="range" min="-22" max="0" step="1.0" value="-13"></div>
+
+<p> </p>
+
+<div>Rotate upper legs  <input id="lowerLegsRotationSlider" type="range" min="0" max="4" step="1.0" value="4"></div>
+
+<p> </p>
+
+<div>Transparency 0 <input id="Transparency" type="range" min="1.0" max="10.0" value="10.0">1</div>
+
+<p> </p>
+
+<select id="viewAsMenu" size="3">
+  <option value="0">Wireframe</option>
+  <option value="1">Surfaces</option>
+  <option value="2">Textures</option>
+</select>
+
+<p> </p>
+
+<button id = "Button1">Change projection</button>
+
+<p> </p>
+
+<div>Change light location<input id="lightLocation" type="range" min="-7" max="7" step="0.1" value="1.0"></div>
+
+<p> </p>
+
+<button id = "Button2">Light</button>
+
+<p> </p>
+
+<select id="lightMenu" size="3">
+  <option value="0">Lightning 1</option>
+  <option value="1">Lightning 2</option>
+  <option value="2">Lightning 3</option>
+</select>
+
+<p> </p>
+
+<body>
+
+<canvas id="gl-canvas" width="640" height="360">
+ Your browser doesn't support the HTML5 canvas element
+</canvas>
+
+</body>
+
+</html>
