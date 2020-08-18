@@ -6,7 +6,7 @@ Simple 3D object using WebGl and javascript
 
 Clone the repository using:
 ```
-    git clone
+git clone https://github.com/parot-99/Steve.git
 ```
 
 Run steve.html file.
