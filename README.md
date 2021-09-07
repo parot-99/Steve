@@ -2,11 +2,6 @@
 
 Simple 3D object using WebGl and javascript
 
-## Usage
+### [Live Demo]
 
-Clone the repository using:
-```
-git clone https://github.com/parot-99/Steve.git
-```
-
-Run steve.html file.
+[Live Demo]: <https://steveparot.netlify.app/>
