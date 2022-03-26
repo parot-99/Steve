@@ -562,12 +562,6 @@ window.addEventListener('load', () => {
   }
 
   gl.viewport(0, 0, canvas.width, canvas.height)
-
-  //changing canvas location
-  // canvas.style.left="400px";
-  // canvas.style.top="100px";
-  // canvas.style.position = "absolute";
-
   gl.clearColor(1.0, 1.0, 1.0, 1.0)
 
   //enabling hidden surface removal
@@ -734,25 +728,31 @@ window.addEventListener('load', () => {
   })
 
   // sliders:
-  document
-    .getElementById('yRotationSlider')
-    .addEventListener('change', (e) => {
-      yRotation = e.target.value
-    })
-  document.getElementById('Transparency').onchange = function () {
-    transparency = this.value / 10
+  document.getElementById('yRotationSlider').addEventListener('change', (e) => {
+    yRotation = e.target.value
+  })
+
+  document.getElementById('Transparency').addEventListener('change', (e) => {
+    transparency = e.target.value / 10
     gl.uniform1f(gl.getUniformLocation(program, 'transparency'), transparency)
-  }
-  document.getElementById('lowerArmsRotationSlider').onchange = function () {
-    rotation[bodyIds['leftLowerArm']] = this.value
-    rotation[bodyIds['rightLowerArm']] = this.value
-  }
-  document.getElementById('lowerLegsRotationSlider').onchange = function () {
-    rotation[bodyIds['leftUpperLeg']] = this.value
-    rotation[bodyIds['rightUpperLeg']] = -this.value
-    rotation[bodyIds['leftLowerLeg']] = this.value
-    rotation[bodyIds['rightLowerLeg']] = -this.value
-  }
+  })
+
+  document
+    .getElementById('lowerArmsRotationSlider')
+    .addEventListener('change', (e) => {
+      rotation[bodyIds['leftLowerArm']] = e.target.value
+      rotation[bodyIds['rightLowerArm']] = e.target.value
+    })
+
+  document
+    .getElementById('lowerLegsRotationSlider')
+    .addEventListener('change', (e) => {
+    rotation[bodyIds['leftUpperLeg']] = e.target.value
+    rotation[bodyIds['rightUpperLeg']] = -e.target.value
+    rotation[bodyIds['leftLowerLeg']] = e.target.value
+    rotation[bodyIds['rightLowerLeg']] = -e.target.value
+  })
+
   document.getElementById('lightLocation').addEventListener('change', (e) => {
     switch (lightScene) {
       case 0:
@@ -825,7 +825,7 @@ window.addEventListener('load', () => {
     )
   })
 
-  document.getElementById('Button2').onclick = function () {
+  document.getElementById('Button2').addEventListener('click', () => {
     lightFlag = lightFlag == 1 ? 0 : 1
     gl.uniform1i(gl.getUniformLocation(program, 'lightFlag'), lightFlag)
     if (lightFlag === 0) {
@@ -833,9 +833,9 @@ window.addEventListener('load', () => {
     } else {
       console.log('Light on')
     }
-  }
+  })
 
-  document.getElementById('Button3').onclick = function () {
+  document.getElementById('Button3').addEventListener('click', () => {
     torsoWidth = torsoWidth === 2.0 ? 5.0 : 2.0
 
     for (let i = 0; i < numNodes; i++) {
@@ -847,7 +847,7 @@ window.addEventListener('load', () => {
         figure[i].translation[2] += figure[figure[i].father].translation[2]
       }
     }
-  }
+  })
 
   viewAs = gl.TRIANGLES
 
@@ -896,18 +896,12 @@ window.addEventListener('load', () => {
   )
 
   gl.uniform1i(gl.getUniformLocation(program, 'lightFlag'), lightFlag)
-
-  let image = document.getElementById('texImage')
-
   configureTexture(image2)
-
   render()
 })
 
 const render = () => {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
   traverse(bodyIds['torso'])
-
   requestAnimFrame(render)
 }
