@@ -1,139 +1,108 @@
-var program
-var canvas
-var gl
+let program
+let canvas
+let gl
 
-var numVertices = 36
+const numVertices = 36
 
-var pointsArray = []
-var normalsArray = []
+let pointsArray = []
+let normalsArray = []
 
 // lightning and shading:
 
-var ambientProduct
-var diffuseProduct
-var specularProduct
-
-var lightScene = 2
-
-var lightPosition
-
-var lightXposition = 1.0
-
-var lightAmbient
-var lightDiffuse
-var lightSpecular
-
-var materialAmbient
-var materialDiffuse
-var materialSpecular
-
-var materialShininess
-
-var lightFlag = 1
+let lightScene = 2
+let lightPosition
+let lightXposition = 1.0
+let lightFlag = 1
 
 // colors, view, and transparency:
 
-var color
-
-var viewAs
-
-var rColor
-var gColor
-var bColor
-
-var transparency = 1.0
-
-var colorFlag = 0
-
-// projection:
-
-var projection
-var projectionFlag = 1
-var projectionFlat_Glsl = 1
+let color
+let viewAs
+let rColor
+let gColor
+let bColor
+let transparency = 1.0
+let colorFlag = 0
 
 // moving:
 
-var yRotation = -20.0
+let yRotation = -20.0
+let rotation = [0.0, 0.0, 0.0, -13.0, 0.0, -13.0, 4.0, 4.0, -4.0, -4.0]
+let moveX = 0.0
+let moveY = 0.0
+let moveZ = 0.0
+let xTeta = 0
+let yTeta = 0
+let zTeta = 0
 
-var rotation = [0.0, 0.0, 0.0, -13.0, 0.0, -13.0, 4.0, 4.0, -4.0, -4.0]
+// object letiables:
 
-var moveX = 0.0
-var moveY = 0.0
-var moveZ = 0.0
+let figure = []
 
-var xTeta = 0
-var yTeta = 0
-var zTeta = 0
+const numNodes = 10
+const bodyIds = {
+  torso: 0,
+  head: 1,
+  leftUpperArm: 2,
+  leftLowerArm: 3,
+  rightUpperArm: 4,
+  rightLowerArm: 5,
+  leftUpperLeg: 6,
+  leftLowerLeg: 7,
+  rightUpperLeg: 8,
+  rightLowerLeg: 9,
+}
 
-// object variables:
-
-var figure = []
-
-var numNodes = 10
-
-var torsoId = 0
-var headId = 1
-var leftUpperArmId = 2
-var leftLowerArmId = 3
-var rightUpperArmId = 4
-var rightLowerArmId = 5
-var leftUpperLegId = 6
-var leftLowerLegId = 7
-var rightUpperLegId = 8
-var rightLowerLegId = 9
-
-var torsoHeight = 5.0
-var torsoWidth = 2.0
-var headHeight = 2.0
-var headWidth = 2.0
-
-// cube vertices:
-
-var vertices = [
-  vec4(-0.28152, -0.5, 0.28152, 1.0),
-  vec4(-0.28152, 0.5, 0.28152, 1.0),
-  vec4(0.28152, 0.5, 0.28152, 1.0),
-  vec4(0.28152, -0.5, 0.28152, 1.0),
-  vec4(-0.28152, -0.5, -0.28152, 1.0),
-  vec4(-0.28152, 0.5, -0.28152, 1.0),
-  vec4(0.28152, 0.5, -0.28152, 1.0),
-  vec4(0.28152, -0.5, -0.28152, 1.0),
-]
+let torsoHeight = 5.0
+let torsoWidth = 2.0
+let headHeight = 2.0
+let headWidth = 2.0
 
 // texture:
 
-var texCoord = [vec2(0, 0), vec2(0, 1), vec2(1, 1), vec2(1, 0)]
+let texCoord = [vec2(0, 0), vec2(0, 1), vec2(1, 1), vec2(1, 0)]
+let texCoordsArray = []
+let texSize = 64
+let textureFlag = 0
 
-var texCoordsArray = []
-
-var texSize = 64
-
-var textureFlag = 0
-
-var image1 = new Array()
-for (var i = 0; i < texSize; i++) image1[i] = new Array()
-for (var i = 0; i < texSize; i++)
-  for (var j = 0; j < texSize; j++) image1[i][j] = new Float32Array(4)
-for (var i = 0; i < texSize; i++)
-  for (var j = 0; j < texSize; j++) {
-    var c = ((i & 0x8) == 0) ^ ((j & 0x8) == 0)
+let image1 = new Array()
+for (let i = 0; i < texSize; i++) image1[i] = new Array()
+for (let i = 0; i < texSize; i++)
+  for (let j = 0; j < texSize; j++) image1[i][j] = new Float32Array(4)
+for (let i = 0; i < texSize; i++)
+  for (let j = 0; j < texSize; j++) {
+    let c = ((i & 0x8) == 0) ^ ((j & 0x8) == 0)
     image1[i][j] = [c, c, c, 1]
   }
 
-var image2 = new Uint8Array(4 * texSize * texSize)
+let image2 = new Uint8Array(4 * texSize * texSize)
 
-for (var i = 0; i < texSize; i++)
-  for (var j = 0; j < texSize; j++)
-    for (var k = 0; k < 4; k++)
+for (let i = 0; i < texSize; i++) {
+  for (let j = 0; j < texSize; j++) {
+    for (let k = 0; k < 4; k++) {
       image2[4 * texSize * i + 4 * j + k] = 255 * image1[i][j][k]
+    }
+  }
+}
 
 // functions:
 
-function quad(a, b, c, d) {
-  var t1 = subtract(vertices[b], vertices[a])
-  var t2 = subtract(vertices[c], vertices[b])
-  var normal = cross(t1, t2)
-  var normal = vec3(normal)
+const quad = (a, b, c, d) => {
+  const vertices = [
+    vec4(-0.28152, -0.5, 0.28152, 1.0),
+    vec4(-0.28152, 0.5, 0.28152, 1.0),
+    vec4(0.28152, 0.5, 0.28152, 1.0),
+    vec4(0.28152, -0.5, 0.28152, 1.0),
+    vec4(-0.28152, -0.5, -0.28152, 1.0),
+    vec4(-0.28152, 0.5, -0.28152, 1.0),
+    vec4(0.28152, 0.5, -0.28152, 1.0),
+    vec4(0.28152, -0.5, -0.28152, 1.0),
+  ]
+
+  let t1 = subtract(vertices[b], vertices[a])
+  let t2 = subtract(vertices[c], vertices[b])
+  let normal = cross(t1, t2)
+  normal = vec3(normal)
 
   pointsArray.push(vertices[a])
   normalsArray.push(normal)
@@ -155,7 +124,7 @@ function quad(a, b, c, d) {
   texCoordsArray.push(texCoord[3])
 }
 
-function cube() {
+const cube = () => {
   quad(1, 0, 3, 2)
   quad(2, 3, 7, 6)
   quad(3, 0, 4, 7)
@@ -164,25 +133,25 @@ function cube() {
   quad(5, 4, 0, 1)
 }
 
-function myModelViewTranslation(thisTx, thisTy, thisTz) {
+const myModelViewTranslation = (thisTx, thisTy, thisTz) => {
   gl.uniform1f(gl.getUniformLocation(program, 'modelTx'), thisTx)
   gl.uniform1f(gl.getUniformLocation(program, 'modelTy'), thisTy)
   gl.uniform1f(gl.getUniformLocation(program, 'modelTz'), thisTz)
 }
 
-function myTranslation(thisTx, thisTy, thisTz) {
+const myTranslation = (thisTx, thisTy, thisTz) => {
   gl.uniform1f(gl.getUniformLocation(program, 'tx'), thisTx)
   gl.uniform1f(gl.getUniformLocation(program, 'ty'), thisTy)
   gl.uniform1f(gl.getUniformLocation(program, 'tz'), thisTz)
 }
 
-function myScale(thisSx, thisSy, thisSz) {
+const myScale = (thisSx, thisSy, thisSz) => {
   gl.uniform1f(gl.getUniformLocation(program, 'sx'), thisSx)
   gl.uniform1f(gl.getUniformLocation(program, 'sy'), thisSy)
   gl.uniform1f(gl.getUniformLocation(program, 'sz'), thisSz)
 }
 
-function myRotation(teta, axis) {
+const myRotation = (teta, axis) => {
   xTeta
   yTeta
   zTeta
@@ -211,14 +180,14 @@ function myRotation(teta, axis) {
   }
 }
 
-function setColor(thisRcolor, thisGcolor, thisBcolor) {
-  rColor = thisRcolor
-  gColor = thisGcolor
-  bColor = thisBcolor
+const setColor = (r, g, b) => {
+  rColor = r
+  gColor = g
+  bColor = b
 }
 
-function createNode(render, sibling, child, father, translation) {
-  var node = {
+const createNode = (render, sibling, child, father, translation) => {
+  const node = {
     render: render,
     sibling: sibling,
     child: child,
@@ -229,19 +198,26 @@ function createNode(render, sibling, child, father, translation) {
   return node
 }
 
-function traverse(Id) {
-  if (Id == null) return
+const traverse = (id) => {
+  if (id == null) {
+    return
+  }
 
   myRotation(yRotation, 'y')
 
-  figure[Id].render()
+  figure[id].render()
 
-  if (figure[Id].child != null) traverse(figure[Id].child)
-  if (figure[Id].sibling != null) traverse(figure[Id].sibling)
+  if (figure[id].child != null) {
+    traverse(figure[id].child)
+  }
+
+  if (figure[id].sibling != null) {
+    traverse(figure[id].sibling)
+  }
 }
 
-function configureTexture(image) {
-  var texture = gl.createTexture()
+const configureTexture = (image) => {
+  let texture = gl.createTexture()
   gl.activeTexture(gl.TEXTURE0)
   gl.bindTexture(gl.TEXTURE_2D, texture)
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
@@ -265,36 +241,40 @@ function configureTexture(image) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 }
 
-function torso() {
-  myRotation(rotation[torsoId], 'x')
+const torso = () => {
+  myRotation(rotation[bodyIds['torso']], 'x')
   myModelViewTranslation(
-    figure[torsoId].translation[0],
-    figure[torsoId].translation[1],
-    figure[torsoId].translation[2]
+    figure[bodyIds['torso']].translation[0],
+    figure[bodyIds['torso']].translation[1],
+    figure[bodyIds['torso']].translation[2]
   )
   myScale(torsoWidth, torsoHeight, 1.0)
+
   switch (colorFlag) {
     case 0:
       setColor(0.0, 1.0, 1.0)
       break
+
     case 1:
       setColor(1.0, 0.0, 0.0)
       break
+
     case 2:
       setColor(0.0, 0.0, 0.0)
       break
   }
+
   color = vec3(rColor, gColor, bColor)
   gl.uniform3fv(gl.getUniformLocation(program, 'vColor'), color)
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function head() {
-  myRotation(rotation[headId], 'x')
+const head = () => {
+  myRotation(rotation[bodyIds['head']], 'x')
   myModelViewTranslation(
-    figure[headId].translation[0],
-    figure[headId].translation[1],
-    figure[headId].translation[2]
+    figure[bodyIds['head']].translation[0],
+    figure[bodyIds['head']].translation[1],
+    figure[bodyIds['head']].translation[2]
   )
   myScale(headWidth, headHeight, headWidth)
   setColor(1.0, 0.89, 0.77)
@@ -303,12 +283,12 @@ function head() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function leftUpperArm() {
-  myRotation(rotation[leftUpperArmId], 'x')
+const leftUpperArm = () => {
+  myRotation(rotation[bodyIds['leftUpperArm']], 'x')
   myModelViewTranslation(
-    figure[leftUpperArmId].translation[0],
-    figure[leftUpperArmId].translation[1],
-    figure[leftUpperArmId].translation[2]
+    figure[bodyIds['leftUpperArm']].translation[0],
+    figure[bodyIds['leftUpperArm']].translation[1],
+    figure[bodyIds['leftUpperArm']].translation[2]
   )
   myScale(1.0, 1.0, 1.0)
   switch (colorFlag) {
@@ -327,12 +307,12 @@ function leftUpperArm() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function leftLowerArm() {
-  myRotation(rotation[leftLowerArmId], 'x')
+const leftLowerArm = () => {
+  myRotation(rotation[bodyIds['leftLowerArm']], 'x')
   myModelViewTranslation(
-    figure[leftLowerArmId].translation[0],
-    figure[leftLowerArmId].translation[1],
-    figure[leftLowerArmId].translation[2]
+    figure[bodyIds['leftLowerArm']].translation[0],
+    figure[bodyIds['leftLowerArm']].translation[1],
+    figure[bodyIds['leftLowerArm']].translation[2]
   )
   myScale(1.0, 2.0, 1.0)
   setColor(1.0, 0.89, 0.77)
@@ -341,12 +321,12 @@ function leftLowerArm() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function rightUpperArm() {
-  myRotation(rotation[rightUpperArmId], 'x')
+const rightUpperArm = () => {
+  myRotation(rotation[bodyIds['rightUpperArm']], 'x')
   myModelViewTranslation(
-    figure[rightUpperArmId].translation[0],
-    figure[rightUpperArmId].translation[1],
-    figure[rightUpperArmId].translation[2]
+    figure[bodyIds['rightUpperArm']].translation[0],
+    figure[bodyIds['rightUpperArm']].translation[1],
+    figure[bodyIds['rightUpperArm']].translation[2]
   )
   myScale(1.0, 1.0, 1.0)
   switch (colorFlag) {
@@ -365,12 +345,12 @@ function rightUpperArm() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function rightLowerArm() {
-  myRotation(rotation[rightLowerArmId], 'x')
+const rightLowerArm = () => {
+  myRotation(rotation[bodyIds['rightLowerArm']], 'x')
   myModelViewTranslation(
-    figure[rightLowerArmId].translation[0],
-    figure[rightLowerArmId].translation[1],
-    figure[rightLowerArmId].translation[2]
+    figure[bodyIds['rightLowerArm']].translation[0],
+    figure[bodyIds['rightLowerArm']].translation[1],
+    figure[bodyIds['rightLowerArm']].translation[2]
   )
   myScale(1.0, 2.0, 1.0)
   setColor(1.0, 0.89, 0.77)
@@ -379,12 +359,12 @@ function rightLowerArm() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function leftUpperLeg() {
-  myRotation(rotation[leftUpperLegId], 'x')
+const leftUpperLeg = () => {
+  myRotation(rotation[bodyIds['leftUpperLeg']], 'x')
   myModelViewTranslation(
-    figure[leftUpperLegId].translation[0],
-    figure[leftUpperLegId].translation[1],
-    figure[leftUpperLegId].translation[2]
+    figure[bodyIds['leftUpperLeg']].translation[0],
+    figure[bodyIds['leftUpperLeg']].translation[1],
+    figure[bodyIds['leftUpperLeg']].translation[2]
   )
   myScale(1.0, 2.0, 1.0)
   switch (colorFlag) {
@@ -400,12 +380,12 @@ function leftUpperLeg() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function leftLowerLeg() {
-  myRotation(rotation[leftLowerLegId], 'x')
+const leftLowerLeg = () => {
+  myRotation(rotation[bodyIds['leftLowerLeg']], 'x')
   myModelViewTranslation(
-    figure[leftLowerLegId].translation[0],
-    figure[leftLowerLegId].translation[1],
-    figure[leftLowerLegId].translation[2]
+    figure[bodyIds['leftLowerLeg']].translation[0],
+    figure[bodyIds['leftLowerLeg']].translation[1],
+    figure[bodyIds['leftLowerLeg']].translation[2]
   )
   myScale(1.0, 1.0, 1.0)
   setColor(0.5, 0.5, 0.5)
@@ -414,12 +394,12 @@ function leftLowerLeg() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function rightUpperLeg() {
-  myRotation(rotation[rightUpperLegId], 'x')
+const rightUpperLeg = () => {
+  myRotation(rotation[bodyIds['rightUpperLeg']], 'x')
   myModelViewTranslation(
-    figure[rightUpperLegId].translation[0],
-    figure[rightUpperLegId].translation[1],
-    figure[rightUpperLegId].translation[2]
+    figure[bodyIds['rightUpperLeg']].translation[0],
+    figure[bodyIds['rightUpperLeg']].translation[1],
+    figure[bodyIds['rightUpperLeg']].translation[2]
   )
   myScale(1.0, 2.0, 1.0)
   switch (colorFlag) {
@@ -435,12 +415,12 @@ function rightUpperLeg() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function rightLowerLeg() {
-  myRotation(rotation[rightLowerLegId], 'x')
+const rightLowerLeg = () => {
+  myRotation(rotation[bodyIds['rightLowerLeg']], 'x')
   myModelViewTranslation(
-    figure[rightLowerLegId].translation[0],
-    figure[rightLowerLegId].translation[1],
-    figure[rightLowerLegId].translation[2]
+    figure[bodyIds['rightLowerLeg']].translation[0],
+    figure[bodyIds['rightLowerLeg']].translation[1],
+    figure[bodyIds['rightLowerLeg']].translation[2]
   )
   myScale(1.0, 1.0, 1.0)
   setColor(0.5, 0.5, 0.5)
@@ -449,103 +429,126 @@ function rightLowerLeg() {
   gl.drawArrays(viewAs, 0, numVertices)
 }
 
-function initNodes(Id) {
-  switch (Id) {
-    case torsoId:
-      figure[torsoId] = createNode(torso, null, headId, null, [0.0, 0.0, 0.0])
+const initNodes = (id) => {
+  switch (id) {
+    case bodyIds['torso']:
+      figure[bodyIds['torso']] = createNode(
+        torso,
+        null,
+        bodyIds['head'],
+        null,
+        [0.0, 0.0, 0.0]
+      )
       break
 
-    case headId:
-      figure[headId] = createNode(head, leftUpperArmId, null, torsoId, [
-        0.0,
-        torsoHeight * 0.5 + 1.0,
-        0.0,
-      ])
+    case bodyIds['head']:
+      figure[bodyIds['head']] = createNode(
+        head,
+        bodyIds['leftUpperArm'],
+        null,
+        bodyIds['torso'],
+        [0.0, torsoHeight * 0.5 + 1.0, 0.0]
+      )
       break
 
-    case leftUpperArmId:
-      figure[leftUpperArmId] = createNode(
+    case bodyIds['leftUpperArm']:
+      figure[bodyIds['leftUpperArm']] = createNode(
         leftUpperArm,
-        rightUpperArmId,
-        leftLowerArmId,
-        torsoId,
+        bodyIds['rightUpperArm'],
+        bodyIds['leftLowerArm'],
+        bodyIds['torso'],
         [-(torsoWidth * 0.28152) - 0.28152, torsoHeight * 0.5 - 0.5, 0.0]
       )
       break
 
-    case leftLowerArmId:
-      figure[leftLowerArmId] = createNode(
+    case bodyIds['leftLowerArm']:
+      figure[bodyIds['leftLowerArm']] = createNode(
         leftLowerArm,
         null,
         null,
-        leftUpperArmId,
+        bodyIds['leftUpperArm'],
         [0.0, -1.5, 0.0]
       )
       break
 
-    case rightUpperArmId:
-      figure[rightUpperArmId] = createNode(
+    case bodyIds['rightUpperArm']:
+      figure[bodyIds['rightUpperArm']] = createNode(
         rightUpperArm,
-        leftUpperLegId,
-        rightLowerArmId,
-        torsoId,
+        bodyIds['leftUpperLeg'],
+        bodyIds['rightLowerArm'],
+        bodyIds['torso'],
         [torsoWidth * 0.28152 + 0.28152, torsoHeight * 0.5 - 0.5, 0.0]
       )
       break
 
-    case rightLowerArmId:
-      figure[rightLowerArmId] = createNode(
+    case bodyIds['rightLowerArm']:
+      figure[bodyIds['rightLowerArm']] = createNode(
         rightLowerArm,
         null,
         null,
-        rightUpperArmId,
+        bodyIds['rightUpperArm'],
         [0.0, -1.5, 0.0]
       )
       break
 
-    case leftUpperLegId:
-      figure[leftUpperLegId] = createNode(
+    case bodyIds['leftUpperLeg']:
+      figure[bodyIds['leftUpperLeg']] = createNode(
         leftUpperLeg,
-        rightUpperLegId,
-        leftLowerLegId,
-        torsoId,
+        bodyIds['rightUpperLeg'],
+        bodyIds['leftLowerLeg'],
+        bodyIds['torso'],
         [-(torsoWidth * 0.28152) + 0.28152, -(0.5 * torsoHeight) - 1.0, 0.0]
       )
       break
 
-    case leftLowerLegId:
-      figure[leftLowerLegId] = createNode(
+    case bodyIds['leftLowerLeg']:
+      figure[bodyIds['leftLowerLeg']] = createNode(
         leftLowerLeg,
         null,
         null,
-        leftUpperLegId,
+        bodyIds['leftUpperLeg'],
         [0.0, -1.5, 0.0]
       )
       break
 
-    case rightUpperLegId:
-      figure[rightUpperLegId] = createNode(
+    case bodyIds['rightUpperLeg']:
+      figure[bodyIds['rightUpperLeg']] = createNode(
         rightUpperLeg,
         null,
-        rightLowerLegId,
-        torsoId,
+        bodyIds['rightLowerLeg'],
+        bodyIds['torso'],
         [torsoWidth * 0.28152 - 0.28152, -(0.5 * torsoHeight) - 1.0, 0.0]
       )
       break
 
-    case rightLowerLegId:
-      figure[rightLowerLegId] = createNode(
+    case bodyIds['rightLowerLeg']:
+      figure[bodyIds['rightLowerLeg']] = createNode(
         rightLowerLeg,
         null,
         null,
-        rightUpperLegId,
+        bodyIds['rightUpperLeg'],
         [0.0, -1.5, 0.0]
       )
       break
   }
 }
 
-window.onload = function init() {
+window.addEventListener('load', () => {
+  let lightAmbient = vec4(0.2, 0.2, 0.3, 1.0)
+  let lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0)
+  let lightSpecular = vec4(0.0, 0.0, 0.0, 1.0)
+  let materialAmbient = vec4(1.0, 0.0, 1.0, 1.0)
+  let materialDiffuse = vec4(1.0, 0.5, 0.0, 1.0)
+  let materialSpecular = vec4(0.0, 0.0, 0.0, 1.0)
+  let lightPosition = vec4(lightXposition, 1.5, 5.0, 0.0)
+  let ambientProduct = mult(lightAmbient, materialAmbient)
+  let diffuseProduct = mult(lightDiffuse, materialDiffuse)
+  let specularProduct = mult(lightSpecular, materialSpecular)
+  let materialShininess = 100
+  let projection
+  let projectionFlag = 1
+  let projectionFlat_Glsl = 1
+
   canvas = document.getElementById('gl-canvas')
 
   //uncomment the next line if "webgl-utils.js" file is not included
@@ -576,35 +579,35 @@ window.onload = function init() {
   cube()
 
   // normals buffer
-  var nBuffer = gl.createBuffer()
+  let nBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer)
   gl.bufferData(gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW)
 
-  var vNormal = gl.getAttribLocation(program, 'vNormal')
+  let vNormal = gl.getAttribLocation(program, 'vNormal')
   gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0)
   gl.enableVertexAttribArray(vNormal)
 
   // vertices buffer
-  var vBuffer = gl.createBuffer()
+  let vBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer)
   gl.bufferData(gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW)
 
-  var vPosition = gl.getAttribLocation(program, 'vPosition')
+  let vPosition = gl.getAttribLocation(program, 'vPosition')
   gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0)
   gl.enableVertexAttribArray(vPosition)
 
   // texture buffer
-  var tBuffer = gl.createBuffer()
+  let tBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer)
   gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoordsArray), gl.STATIC_DRAW)
 
-  var vTexCoord = gl.getAttribLocation(program, 'vTexCoord')
+  let vTexCoord = gl.getAttribLocation(program, 'vTexCoord')
   gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0)
   gl.enableVertexAttribArray(vTexCoord)
 
   // menus:
-  var colorListener = document.getElementById('colorMenu')
-  colorListener.addEventListener('click', function () {
+  let colorListener = document.getElementById('colorMenu')
+  colorListener.addEventListener('click', () => {
     switch (colorListener.selectedIndex) {
       case 0:
         colorFlag = 0
@@ -621,8 +624,8 @@ window.onload = function init() {
     }
   })
 
-  var viewListener = document.getElementById('viewAsMenu')
-  viewListener.addEventListener('click', function () {
+  let viewListener = document.getElementById('viewAsMenu')
+  viewListener.addEventListener('click', () => {
     switch (viewListener.selectedIndex) {
       case 0:
         viewAs = gl.LINES
@@ -642,8 +645,8 @@ window.onload = function init() {
     gl.uniform1i(gl.getUniformLocation(program, 'textureFlag'), textureFlag)
   })
 
-  var lightListener = document.getElementById('lightMenu')
-  lightListener.addEventListener('click', function () {
+  const lightListener = document.getElementById('lightMenu')
+  lightListener.addEventListener('click', () => {
     switch (lightListener.selectedIndex) {
       case 0:
         lightScene = 0
@@ -666,6 +669,7 @@ window.onload = function init() {
 
         console.log('Lightning scene 1')
         break
+
       case 1:
         lightScene = 1
 
@@ -687,6 +691,7 @@ window.onload = function init() {
 
         console.log('Lightning scene 2')
         break
+
       case 2:
         lightScene = 2
 
@@ -729,63 +734,68 @@ window.onload = function init() {
   })
 
   // sliders:
-  document.getElementById('yRotationSlider').onchange = function () {
-    yRotation = event.target.value
-  }
+  document
+    .getElementById('yRotationSlider')
+    .addEventListener('change', (e) => {
+      yRotation = e.target.value
+    })
   document.getElementById('Transparency').onchange = function () {
     transparency = this.value / 10
     gl.uniform1f(gl.getUniformLocation(program, 'transparency'), transparency)
   }
   document.getElementById('lowerArmsRotationSlider').onchange = function () {
-    rotation[leftLowerArmId] = this.value
-    rotation[rightLowerArmId] = this.value
+    rotation[bodyIds['leftLowerArm']] = this.value
+    rotation[bodyIds['rightLowerArm']] = this.value
   }
   document.getElementById('lowerLegsRotationSlider').onchange = function () {
-    rotation[leftUpperLegId] = this.value
-    rotation[rightUpperLegId] = -this.value
-    rotation[leftLowerLegId] = this.value
-    rotation[rightLowerLegId] = -this.value
+    rotation[bodyIds['leftUpperLeg']] = this.value
+    rotation[bodyIds['rightUpperLeg']] = -this.value
+    rotation[bodyIds['leftLowerLeg']] = this.value
+    rotation[bodyIds['rightLowerLeg']] = -this.value
   }
-  document.getElementById('lightLocation').onchange = function () {
+  document.getElementById('lightLocation').addEventListener('change', (e) => {
     switch (lightScene) {
       case 0:
-        lightPosition = vec4(this.value, 1.0, 1.0, 0.0)
-        lightXposition = this.value
+        lightPosition = vec4(e.traget.value, 1.0, 1.0, 0.0)
+        lightXposition = e.target.value
         break
+
       case 1:
-        lightPosition = vec4(this.value, 1.0, 1.0, 0.0)
-        lightXposition = this.value
+        lightPosition = vec4(e.target.value, 1.0, 1.0, 0.0)
+        lightXposition = e.target.value
         break
+
       case 2:
-        lightPosition = vec4(this.value, 1.5, 5.0, 0.0)
-        lightXposition = this.value
+        lightPosition = vec4(e.target.value, 1.5, 5.0, 0.0)
+        lightXposition = e.target.value
         break
     }
+
     gl.uniform4fv(
       gl.getUniformLocation(program, 'lightPosition'),
       flatten(lightPosition)
     )
-  }
+  })
 
   // key events:
-  window.addEventListener('keydown', function () {
-    switch (event.keyCode) {
-      case 65:
+  window.addEventListener('keydown', (event) => {
+    switch (event.key) {
+      case 'a':
         moveX -= 0.1
         break
-      case 87:
+      case 'w':
         moveY += 0.1
         break
-      case 68:
+      case 'd':
         moveX += 0.1
         break
-      case 83:
+      case 's':
         moveY -= 0.1
         break
-      case 69:
+      case 'e':
         moveZ += 0.1
         break
-      case 81:
+      case 'q':
         moveZ -= 0.1
         break
     }
@@ -793,7 +803,7 @@ window.onload = function init() {
   })
 
   // buttons:
-  document.getElementById('Button1').onclick = function () {
+  document.getElementById('Button1').addEventListener('click', () => {
     projectionFlag = projectionFlag === 1 ? 0 : 1
     projectionFlat_Glsl = projectionFlag
     gl.uniform1f(
@@ -813,7 +823,7 @@ window.onload = function init() {
       false,
       flatten(projection)
     )
-  }
+  })
 
   document.getElementById('Button2').onclick = function () {
     lightFlag = lightFlag == 1 ? 0 : 1
@@ -828,7 +838,7 @@ window.onload = function init() {
   document.getElementById('Button3').onclick = function () {
     torsoWidth = torsoWidth === 2.0 ? 5.0 : 2.0
 
-    for (var i = 0; i < numNodes; i++) {
+    for (let i = 0; i < numNodes; i++) {
       initNodes(i)
 
       if (figure[i].father != null) {
@@ -841,7 +851,7 @@ window.onload = function init() {
 
   viewAs = gl.TRIANGLES
 
-  for (var i = 0; i < numNodes; i++) {
+  for (let i = 0; i < numNodes; i++) {
     initNodes(i)
 
     if (figure[i].father != null) {
@@ -850,22 +860,6 @@ window.onload = function init() {
       figure[i].translation[2] += figure[figure[i].father].translation[2]
     }
   }
-
-  lightAmbient = vec4(0.2, 0.2, 0.3, 1.0)
-  lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0)
-  lightSpecular = vec4(0.0, 0.0, 0.0, 1.0)
-
-  materialAmbient = vec4(1.0, 0.0, 1.0, 1.0)
-  materialDiffuse = vec4(1.0, 0.5, 0.0, 1.0)
-  materialSpecular = vec4(0.0, 0.0, 0.0, 1.0)
-
-  lightPosition = vec4(lightXposition, 1.5, 5.0, 0.0)
-
-  ambientProduct = mult(lightAmbient, materialAmbient)
-  diffuseProduct = mult(lightDiffuse, materialDiffuse)
-  specularProduct = mult(lightSpecular, materialSpecular)
-
-  materialShininess = 100
 
   gl.uniform4fv(
     gl.getUniformLocation(program, 'ambientProduct'),
@@ -903,17 +897,17 @@ window.onload = function init() {
 
   gl.uniform1i(gl.getUniformLocation(program, 'lightFlag'), lightFlag)
 
-  var image = document.getElementById('texImage')
+  let image = document.getElementById('texImage')
 
   configureTexture(image2)
 
   render()
-}
+})
 
-var render = function () {
+const render = () => {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-  traverse(torsoId)
+  traverse(bodyIds['torso'])
 
   requestAnimFrame(render)
 }
