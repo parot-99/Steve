@@ -7,14 +7,14 @@ const numVertices = 36
 let pointsArray = []
 let normalsArray = []
 
-// lightning and shading:
+// lightning and shading
 
 let lightScene = 2
 let lightPosition
 let lightXposition = 1.0
 let lightFlag = 1
 
-// colors, view, and transparency:
+// colors, view, and transparency
 
 let color
 let viewAs
@@ -24,7 +24,7 @@ let bColor
 let transparency = 1.0
 let colorFlag = 0
 
-// moving:
+// moving
 
 let yRotation = -20.0
 let rotation = [0.0, 0.0, 0.0, -13.0, 0.0, -13.0, 4.0, 4.0, -4.0, -4.0]
@@ -35,7 +35,7 @@ let xTeta = 0
 let yTeta = 0
 let zTeta = 0
 
-// object letiables:
+// object
 
 let figure = []
 
@@ -58,7 +58,7 @@ let torsoWidth = 2.0
 let headHeight = 2.0
 let headWidth = 2.0
 
-// texture:
+// texture
 
 let texCoord = [vec2(0, 0), vec2(0, 1), vec2(1, 1), vec2(1, 0)]
 let texCoordsArray = []
@@ -85,7 +85,7 @@ for (let i = 0; i < texSize; i++) {
   }
 }
 
-// functions:
+// functions
 
 const quad = (a, b, c, d) => {
   const vertices = [

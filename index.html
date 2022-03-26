@@ -33,55 +33,70 @@
     varying vec2 fTexCoord;
 
     mat4 myTranslation(in float thisTx,in float thisTy,in float thisTz) {
-
-      return mat4(1.0,0.0,0.0,0.0,
-                  0.0,1.0,0.0,0.0,
-                  0.0,0.0,1.0,0.0,
-                  thisTx,thisTy,thisTz,1.0);
-
+      return mat4(
+        1.0,0.0,0.0,0.0,
+        0.0,1.0,0.0,0.0,
+        0.0,0.0,1.0,0.0,
+        thisTx,thisTy,thisTz,1.0
+      );
     }
 
     mat4 myScale(in float sx,in float sy,in float sz) {
-
-      return mat4(sx,0.0,0.0,0.0,
-                  0.0,sy,0.0,0.0,
-                  0.0,0.0,sz,0.0,
-                  0.0,0.0,0.0,1.0);
-
+      return mat4(
+        sx,0.0,0.0,0.0,
+        0.0,sy,0.0,0.0,
+        0.0,0.0,sz,0.0,
+        0.0,0.0,0.0,1.0
+      );
     }
 
     mat4 myRotation(in vec3 omega) {
+      vec3 angles = radians(omega);
+      vec3 c = cos(angles);
+      vec3 s = sin(angles);
 
-      vec3 angles = radians( omega );
-      vec3 c = cos( angles );
-      vec3 s = sin( angles );
-
-      return mat4( 1.0,  0.0,  0.0, 0.0,
+      return (
+        mat4( 
+          1.0,  0.0,  0.0, 0.0,
           0.0,  c.x,  s.x, 0.0,
           0.0, -s.x,  c.x, 0.0,
-          0.0,  0.0,  0.0, 1.0 )*
-
-      mat4( c.y, 0.0, -s.y, 0.0,
+          0.0,  0.0,  0.0, 1.0 
+        ) *
+        mat4(
+          c.y, 0.0, -s.y, 0.0,
           0.0, 1.0,  0.0, 0.0,
           s.y, 0.0,  c.y, 0.0,
-          0.0, 0.0,  0.0, 1.0 )*
-
-      mat4( c.z, s.z, 0.0, 0.0,
+          0.0, 0.0,  0.0, 1.0
+        ) *
+        mat4( 
+          c.z, s.z, 0.0, 0.0,
           -s.z,  c.z, 0.0, 0.0,
           0.0,  0.0, 1.0, 0.0,
-          0.0,  0.0, 0.0, 1.0 );
+          0.0,  0.0, 0.0, 1.0
+        )
+      );
     }
 
     void main() {
       mat4 newModelView;
 
       if(projectionFlag==0.0) {
-        newModelView=myTranslation(tx,ty,tz)*myRotation(vec3(0.0,omega[1],0.0))*myRotation(vec3(omega[0],0.0,0.0))*myTranslation(modelTx,modelTy,modelTz)*myScale(sx,sy,sz);
+        newModelView = (
+          myTranslation(tx,ty,tz)*myRotation(vec3(0.0,omega[1],0.0))*
+          myRotation(vec3(omega[0],0.0,0.0)) *
+          myTranslation(modelTx,modelTy,modelTz)*myScale(sx,sy,sz)
+        );
       }
 
       else {
-
-        newModelView=myTranslation(tx,ty,tz)*myTranslation(0.0,0.0,-20.0)*myRotation(vec3(0.0,omega[1],0.0))*myRotation(vec3(omega[0],0.0,0.0))*myTranslation(modelTx,modelTy,modelTz)*myScale(sx,sy,sz);
+        newModelView = (
+          myTranslation(tx,ty,tz) *
+          myTranslation(0.0,0.0,-20.0) *
+          myRotation(vec3(0.0,omega[1],0.0)) *
+          myRotation(vec3(omega[0],0.0,0.0)) *
+          myTranslation(modelTx,modelTy,modelTz) *
+          myScale(sx,sy,sz)
+        );
       }
 
       vec3 pos = (newModelView * vPosition).xyz;
@@ -111,43 +126,46 @@
 
     void main() {
         vec4 ambient = ambientProduct;
-
         float Kd = max( dot(L, N), 0.0 );
-        vec4  diffuse = Kd*diffuseProduct;
-
+        vec4 diffuse = Kd*diffuseProduct;
         vec3 H = normalize( L + E );
-
         float Ks = pow( max(dot(N, H), 0.0), shininess );
-        vec4  specular = Ks * specularProduct;
+        vec4 specular = Ks * specularProduct;
 
         if( dot(L, N) < 0.0 ) {
-        specular = vec4(0.0, 0.0, 0.0, 1.0);
+          specular = vec4(0.0, 0.0, 0.0, 1.0);
         }
 
         vec4 fColor;
 
-        if(textureFlag==1) {
-          if(lightFlag==0) {
-            fColor=vec4(vColor,transparency)*texture2D(texture,fTexCoord );
+        if(textureFlag == 1) {
+          if(lightFlag == 0) {
+            fColor = vec4(vColor,transparency) * texture2D(texture,fTexCoord);
           }
 
           else {
-            fColor = (ambient + diffuse +specular)*vec4(vColor,transparency)*texture2D(texture,fTexCoord);
+            fColor = (
+              (ambient + diffuse +specular) *
+              vec4(vColor,transparency) *
+              texture2D(texture,fTexCoord)
+            );
           }
-
         }
 
         else {
-          if(lightFlag==0) {
-            fColor=vec4(vColor,transparency);
+          if(lightFlag == 0) {
+            fColor = vec4(vColor, transparency);
           }
 
           else {
-            fColor = (ambient + diffuse +specular)*vec4(vColor,transparency);
+            fColor = (
+              (ambient + diffuse + specular) * vec4(vColor, transparency)
+            );
           }
         }
-        gl_FragColor=fColor;
-        gl_FragColor.a=transparency;
+
+        gl_FragColor = fColor;
+        gl_FragColor.a = transparency;
     }
   </script>
   <script type="text/javascript" src="webgl-utils.js"></script>
